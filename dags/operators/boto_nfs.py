@@ -1,20 +1,25 @@
 import boto3
 import json
+import os
+import logging
 import datetime
 import pandas as pd
 
 from airflow.models.baseoperator import BaseOperator as Base
-from airflow.hooks.S3_hook import S3Hook
 
 import settings
 
-class BotoS3Operator(Base):
+class BotoNFSOperator(Base):
+    
     def execute(self, context):
+        today = context['execution_date'].strftime('%y%m%d')
         regions = self.get_regions()
-        [self.get_spot_price(region, context) for region in regions]
+        for region in regions:
+            price_df = self.get_spot_price(region, context)
+            price_df.to_csv(f'{region}_{today}.csv', index=False)
 
     def get_regions(self):
-        print(settings.aws_access_key_id)
+        logging.info('Fetching all region names')
         ec2 = boto3.client('ec2', 
             region_name = 'ap-south-1',
             aws_access_key_id=settings.aws_access_key_id,
@@ -29,11 +34,12 @@ class BotoS3Operator(Base):
             aws_secret_access_key=settings.aws_secret_access_key)
 
         today = context['execution_date']
+        today_str = today.strftime('%y%m%d')
         kwargs = {}
         df = pd.DataFrame()
         n = 1
 
-        logging.info(f'Fetching for region {region} for date {today}')
+        logging.info(f'Fetching for region {region} for date {today_str}')
 
         while True:
             response = ec2.describe_spot_price_history(
@@ -41,11 +47,7 @@ class BotoS3Operator(Base):
                 EndTime = today + datetime.timedelta(days = 1),
                 **kwargs
             )
-            print('Update {} fetched'.format(n))
             df = df.append(pd.DataFrame(response['SpotPriceHistory']))
-            
-            print('Update {} done'.format(n))
-            print(kwargs)
             n += 1
 
             if not response['NextToken']:
@@ -53,4 +55,4 @@ class BotoS3Operator(Base):
 
             kwargs['NextToken'] = response['NextToken']
 
-        df.to_csv('test.csv')
+        return df
