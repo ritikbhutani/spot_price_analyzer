@@ -1,5 +1,4 @@
 import boto3
-import json
 import logging
 import datetime
 import pandas as pd
@@ -12,10 +11,15 @@ class BotoNFSOperator(Base):
     
     def execute(self, context):
         today = context['execution_date'].strftime('%y%m%d')
+        files = []
         regions = self.get_regions()
         for region in regions:
             price_df = self.get_spot_price(region, context)
-            price_df.to_csv(f'{region}_{today}.csv', index=False)
+            file_name = f'{region}_{today}.csv'
+            price_df.to_csv(file_name, index=False)
+            files.append(file_name)
+
+        return files
 
     def get_regions(self):
         logging.info('Fetching all region names')
