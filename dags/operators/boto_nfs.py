@@ -11,13 +11,13 @@ class BotoNFSOperator(Base):
     
     def execute(self, context):
         today = context['execution_date'].strftime('%y%m%d')
-        files = []
+        files = {}
         regions = self.get_regions()
         for region in regions:
             price_df = self.get_spot_price(region, context)
             file_name = f'{region}_{today}.csv'
             price_df.to_csv(file_name, index=False)
-            files.append(file_name)
+            files[region] = file_name
 
         return files
 
@@ -32,7 +32,7 @@ class BotoNFSOperator(Base):
 
     def get_spot_price(self, region, context):
         ec2 = boto3.client('ec2', 
-            region_name = 'ap-south-1',
+            region_name = region,
             aws_access_key_id=settings.aws_access_key_id,
             aws_secret_access_key=settings.aws_secret_access_key)
 

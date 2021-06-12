@@ -17,6 +17,7 @@ class NfsS3Operator(Base):
             aws_secret_access_key = settings.aws_secret_access_key)
 
         logging.info('Uploading files...')
-        for file in files:
-            s3.upload_file(file, 'spot-prices-stage-bucket', f'prices/{file}')
+        for region, file in files.items():
+            key = f'prices/{region}/{file}'
+            s3.upload_file(file, 'spot-prices-stage-bucket', key)
             logging.info(f'{file} uploaded successfully')
