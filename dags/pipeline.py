@@ -3,6 +3,7 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator 
 from airflow.operators.dummy_operator import DummyOperator
 from operators.boto_nfs import BotoNFSOperator
+from operators.nfs_s3 import NfsS3Operator
 
 default_args = {
     'owner': 'ritik-bhutani',
@@ -19,8 +20,8 @@ with DAG('pipeline',
         start_date = datetime.datetime.now(),
         tags = ['boto', 's3', 'snf']) as dag:
 
-    fetch_prices = BotoNFSOperator(task_id = 'FETCH')
+    fetch_prices = BotoNFSOperator(task_id = 'FETCH_FROM_BOTO')
 
-    upload_prices = DummyOperator(task_id = 'UPLOAD')
+    upload_prices = NfsS3Operator(task_id = 'UPLOAD_TO_S3')
 
     fetch_prices >> upload_prices
